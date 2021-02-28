@@ -16,6 +16,3 @@ A simple program just like `less`, in that it displays the contents of the file 
 - `j` scroll down one line
 - `k` scroll up one line
 - `q` quit
-
-### TODOs
-- Collapse lines created by only reading 100 chars at a time

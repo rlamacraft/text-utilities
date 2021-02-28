@@ -11,7 +11,7 @@ void usage() {
 }
 
 struct line {
-  char string[100];
+  char *string;
   struct line *next;
   struct line *prev;
 };
@@ -60,13 +60,32 @@ int main(int argc, char *argv[]) {
 
   struct line *lines = (struct line*) malloc(sizeof(struct line)); // dummy head
   struct line *current = lines;
+  int appendToPrevious = 0;
   while(1) {
-    struct line *link = (struct line*) malloc(sizeof(struct line));
-    if (fgets(link->string, 100, fp) == NULL)
+    char input[100];
+    if (fgets(input, 100, fp) == NULL)
       break;
-    current->next = link;
-    link->prev = current;
-    current = link;
+    if(!appendToPrevious) {
+      struct line *link = (struct line*) malloc(sizeof(struct line));
+      link->string = (char *) malloc(100);
+      strncpy(link->string, &input[0], 100);
+      current->next = link;
+      link->prev = current;
+      current = link;
+    } else {
+      char * newStr;
+      if((newStr = malloc(strlen(current->string)+101)) != NULL) {
+        newStr[0] = '\0';
+        strcat(newStr, current->string);
+        strncat(newStr, &input[0], 100);
+        free(current->string);
+        current->string = newStr;
+      } else {
+        fprintf(stderr, "malloc failed\n");
+        return(-1);
+      }
+    }
+    appendToPrevious = input[strlen(input) - 1] != '\n';
   }
   fclose(fp);
 
