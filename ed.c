@@ -17,26 +17,33 @@ struct line {
 };
 
 void renderLines(short height, struct line* lines) {
+  printf("renderLines\n");
   printf("\x1b[2J"); // clear the screen
   printf("\x1b[0;0f"); // move to top left
 
-  // find line to show at top
-  struct line* top = lines;
-  short above = floor(height / 2);
-  signed short numbering = 0;
-  for(int i = 0; i < above; i++) {
-    if(top->prev == NULL) break;
-    top = top->prev;
-    numbering--;
-  }
+  if(lines) {
 
-  // print lines from top to bottom
-  struct line* line = top;
-  for(int i = 0; i < height; i++) {
-    printf("%3d | %s", numbering, line->string);
-    line = line->next;
-    if(line == NULL) break;
-    numbering++;
+    // find line to show at top
+    struct line* top = lines;
+    short above = floor(height / 2);
+    signed short numbering = 0;
+    for(int i = 0; i < above; i++) {
+      if(top->prev == NULL) break;
+      top = top->prev;
+      numbering--;
+    }
+
+    // print lines from top to bottom
+    struct line* line = top;
+    for(int i = 0; i < height; i++) {
+      printf("%3d | %s", numbering, line->string);
+      line = line->next;
+      if(line == NULL) break;
+      numbering++;
+    }
+
+  } else {
+    printf("<EMPTY>");
   }
 
   printf("\x1b[%d;1f", height + 1); // move to bottom
@@ -107,10 +114,12 @@ int main(int argc, char *argv[]) {
   }
   fclose(fp);
 
-  // clean up dummy head
+  // clean up dummy head; lines is be null in both directions if file empty
+  struct line* tmpHead = lines;
   lines = lines->next;
-  free(lines->prev);
-  lines->prev = NULL;
+  free(tmpHead);
+  if(lines)
+    lines->prev = NULL;
 
   renderLines(w.ws_row - 1, lines);
 
@@ -126,7 +135,32 @@ int main(int argc, char *argv[]) {
         if(saveFile(argv[1], lines))
           return -1;
         break;
+      }
+      case 'd': {
+        if(top->prev == NULL) { // first line i.e. top == lines
+          if(top->next == NULL) { // file will now be empty
+            lines = NULL;
+            top = NULL;
+          } else {
+            lines = lines->next;
+            free(lines->prev);
+            lines->prev = NULL;
+            top = lines;
+          }
+        } else if(top->next == NULL) { // last line
+          struct line* newLastLine = top->prev;
+          newLastLine->next = NULL;
+          free(top);
+          top = newLastLine;
+        } else {
+          top->prev->next = top->next;
+          top->next->prev = top->prev;
+          struct line* next = top->next;
+          free(top);
+          top = next;
         }
+        break;
+      }
     }
     renderLines(w.ws_row - 1, top);
   }
